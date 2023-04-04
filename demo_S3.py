@@ -148,17 +148,11 @@ def get_state_notebook(result):
     name = result['spec']['name']
     id = result['id']
     url = result['status']['url']
-    """
-    slack_webhook_block = SlackWebhook.load("slack")
-    slack_webhook_block.notify(f"Your notebook with the name {name} has been created ! \n")
-    slack_webhook_block.notify(f"He is in state {status}")
-    slack_webhook_block.notify(f"The id of the notebook is {id}")
-    slack_webhook_block.notify(f"You can access it on this url : {url}")
-    return "A message has been sent ! "
-    """
     return (status, name, id, url)
 
 # Define the task to launch a job
+
+
 @task
 def launch_job(client, bucket_name):
     job_creation_params = {
@@ -183,7 +177,7 @@ def launch_job(client, bucket_name):
             "flavor": "ai1-1-cpu"
         },
         "command": [
-            "bash","-c","pip install -r ~/my_data/requirements_job.txt && python3 ~/my_data/train-first-model.py"
+            "bash", "-c", "pip install -r ~/my_data/requirements_job.txt && python3 ~/my_data/train-first-model.py"
         ],
         "sshPublicKeys": []
     }
@@ -208,6 +202,8 @@ def test():
     return ovh_client
 
 # Flow to launch an AI notebook link to the bucket created before
+
+
 @flow
 def notebook():
     ovh_client = init_ovh()
@@ -219,17 +215,23 @@ def notebook():
     return (state_email)
 
 # Flow to test if the ovh API credentials are valid
+
+
 @flow
 def test_credentials():
     ovh_client = init_ovh()
     return ovh_client.get('/me')['firstname']
 
 # Define the flow to launch the job
+
+
 @flow
 def job():
-    ovh_client=init_ovh()
-    res=launch_job(client=ovh_client,bucket_name="python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a")
-    return("Job Launched ! ")
+    ovh_client = init_ovh()
+    res = launch_job(client=ovh_client,
+                     bucket_name="python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a")
+    return ("Job Launched ! ")
+
 
 # Run the flow for the data container and data
 print("Welcome", test().get('/me')['firstname'],
@@ -238,7 +240,7 @@ print("Welcome", test().get('/me')['firstname'],
 # Run the flow for the notebook creation
 print(f"Flow notebook {notebook()} !")
 
-#Run the flow for the job creation
+# Run the flow for the job creation
 print(job())
 
 # print("Welcome ",test_credentials())
