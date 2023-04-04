@@ -1,11 +1,16 @@
 # Import the libraries
+# Import the prefect libraries in python
 from prefect import flow, task
+from prefect_email import EmailServerCredentials, email_send_message
+
+# Import the ovh client and boto3 for s3 storage
 import ovh
 import boto3
-#import json
+
+# Import error if the client
 from botocore.exceptions import ClientError
-#from prefect.blocks.notifications import SlackWebhook
-from prefect_email import EmailServerCredentials, email_send_message
+# from prefect.blocks.notifications import SlackWebhook
+
 from dotenv import load_dotenv
 import os
 
@@ -13,26 +18,20 @@ import os
 load_dotenv(".env")
 
 
-
-
-def email(state_notebook,url_notebook,id_notebook,name_notebook):
+def email(state_notebook, url_notebook, id_notebook, name_notebook):
     email_credentials_block = EmailServerCredentials.load("email-block")
-    line_1=f"Your notebook with the name {name_notebook} has been created ! \n" 
-    line_2=f"He is in state {state_notebook}. \n"
-    line_3=f"The id of the notebook is {id_notebook}. \n"
-    line_4=f"You can access it on this url : {url_notebook}."
-    message=line_1+line_2+line_3+line_4
-    subject=email_send_message.with_options(name="send email ").submit(
+    line_1 = f"Your notebook with the name {name_notebook} has been created ! \n"
+    line_2 = f"He is in state {state_notebook}. \n"
+    line_3 = f"The id of the notebook is {id_notebook}. \n"
+    line_4 = f"You can access it on this url : {url_notebook}."
+    message = line_1+line_2+line_3+line_4
+    subject = email_send_message.with_options(name="send email ").submit(
         email_server_credentials=email_credentials_block,
         subject="Your notebook via prefect",
         msg=message,
         email_to="victor.vitcheff@ovhcloud.com",
     )
-    return(subject)
-
-
-
-
+    return (subject)
 
 
 # First task to create an open stack token
@@ -122,8 +121,10 @@ def upload_data(file, bucket, client):
 
 @task
 def launch_notebook(client, bucket_name):
-    notebook_creation_params = {"env": {"editorId": "jupyterlab", "frameworkId": "conda", "frameworkVersion": "conda-py39-cuda11.7-v22-4"}, "envVars": None, "labels": None, "name": "prefect-2", "region": "GRA", "resources": {"cpu": 3, "flavor": "ai1-1-cpu"},
-                                "sshPublicKeys": [], "unsecureHttp": False, "volumes": [{"cache": False, "dataStore": {"alias": "S3GRA", "container": "python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a", "prefix": None}, "mountPath": "/workspace/container_0", "permission": "RO"}]}
+    notebook_creation_params = {"env": {"editorId": "jupyterlab", "frameworkId": "pytorch", "frameworkVersion": "pytorch1.10.1-py39-cuda10.2-v22-4"}, "envVars": None, "labels": {
+        "label": "value"
+    }, "name": "prefect-2", "region": "GRA", "resources": {"cpu": 3, "flavor": "ai1-1-cpu"},
+        "sshPublicKeys": [], "unsecureHttp": False, "volumes": [{"cache": False, "dataStore": {"alias": "S3GRA", "container": "python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a", "prefix": None}, "mountPath": "/workspace/container_0", "permission": "RO"}]}
     result = client.post(f'/cloud/project/{os.getenv("PROJECT_ID")}/ai/notebook',
                          **notebook_creation_params)
     return result
@@ -131,10 +132,10 @@ def launch_notebook(client, bucket_name):
 
 @task
 def get_state_notebook(result):
-    status=result['status']['state']
-    name=result['spec']['name']
-    id=result['id']
-    url=result['status']['url']
+    status = result['status']['state']
+    name = result['spec']['name']
+    id = result['id']
+    url = result['status']['url']
     """
     slack_webhook_block = SlackWebhook.load("slack")
     slack_webhook_block.notify(f"Your notebook with the name {name} has been created ! \n")
@@ -143,8 +144,7 @@ def get_state_notebook(result):
     slack_webhook_block.notify(f"You can access it on this url : {url}")
     return "A message has been sent ! "
     """
-    return (status,name,id,url)
-
+    return (status, name, id, url)
 
 
 @flow
@@ -153,21 +153,23 @@ def test():
     res = init_s3()
     list_buckets(res)
     bucket_name = "python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a"
-    #create_bucket(bucket=bucket_name,client=res)
-    #list_bucket_objects(bucket=bucket_name, client=res)
-    #upload_data(file="archive.zip", bucket=bucket_name, client=res)
+    # create_bucket(bucket=bucket_name,client=res)
+    # list_bucket_objects(bucket=bucket_name, client=res)
+    # upload_data(file="archive.zip", bucket=bucket_name, client=res)
     list_bucket_objects(bucket=bucket_name, client=res)
     return ovh_client
+
 
 @flow
 def notebook():
     ovh_client = init_ovh()
     res = launch_notebook(
         client=ovh_client, bucket_name="python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a")
-    state_nb,name_nb,id_nb,url_nb=get_state_notebook(result=res)
-    state_email=email(state_notebook=state_nb,url_notebook=url_nb,id_notebook=id_nb,name_notebook=name_nb)
-    return(state_email)
-    
+    state_nb, name_nb, id_nb, url_nb = get_state_notebook(result=res)
+    state_email = email(state_notebook=state_nb, url_notebook=url_nb,
+                        id_notebook=id_nb, name_notebook=name_nb)
+    return (state_email)
+
 
 @flow
 def test_credentials():
@@ -175,15 +177,12 @@ def test_credentials():
     return ovh_client.get('/me')['firstname']
 
 
-
-    
-
 # Run the flow for the data container and data
-print("Welcome", test().get('/me')['firstname'], "Your data has been added in a S3 bucket")
+print("Welcome", test().get('/me')['firstname'],
+      "Your data has been added in a S3 bucket")
 
 
 print(f"Flow notebook {notebook()} !")
-
 
 
 # print("Welcome ",test_credentials())
