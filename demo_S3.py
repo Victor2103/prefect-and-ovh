@@ -158,8 +158,42 @@ def get_state_notebook(result):
     """
     return (status, name, id, url)
 
+# Define the task to launch a job
+@task
+def launch_job(client, bucket_name):
+    job_creation_params = {
+        "image": "ovhcom/ai-training-pytorch:1.8.1",
+        "region": "GRA",
+        "volumes": [
+            {
+                "dataStore": {
+                    "alias": "S3GRA",
+                    "container": "python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a",
+                    "prefix": ""
+                },
+                "mountPath": "/workspace/my_data",
+                "permission": "RW",
+                "cache": False
+            }
+        ],
+        "name": "prefect",
+        "unsecureHttp": False,
+        "resources": {
+            "cpu": 1,
+            "flavor": "ai1-1-cpu"
+        },
+        "command": [
+            "bash","-c","pip install -r ~/my_data/requirements_job.txt && python3 ~/my_data/train-first-model.py"
+        ],
+        "sshPublicKeys": []
+    }
+    result = client.post(
+        f"/cloud/project/{os.getenv('PROJECT_ID')}/ai/job", **job_creation_params)
+    return (result)
 
 # Flow to create an S3 bucket and upload files in it
+
+
 @flow
 def test():
     ovh_client = init_ovh()
@@ -168,13 +202,12 @@ def test():
     bucket_name = "python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a"
     create_bucket(bucket=bucket_name, client=res)
     list_bucket_objects(bucket=bucket_name, client=res)
-    upload_data(file="my-dataset.zip", bucket=bucket_name, client=res)
+    files = ["my-dataset.zip", "train-first-model.py", "requirements_job.txt"]
+    upload_data(files=files, bucket=bucket_name, client=res)
     list_bucket_objects(bucket=bucket_name, client=res)
     return ovh_client
 
 # Flow to launch an AI notebook link to the bucket created before
-
-
 @flow
 def notebook():
     ovh_client = init_ovh()
@@ -186,13 +219,17 @@ def notebook():
     return (state_email)
 
 # Flow to test if the ovh API credentials are valid
-
-
 @flow
 def test_credentials():
     ovh_client = init_ovh()
     return ovh_client.get('/me')['firstname']
 
+# Define the flow to launch the job
+@flow
+def job():
+    ovh_client=init_ovh()
+    res=launch_job(client=ovh_client,bucket_name="python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a")
+    return("Job Launched ! ")
 
 # Run the flow for the data container and data
 print("Welcome", test().get('/me')['firstname'],
@@ -201,5 +238,7 @@ print("Welcome", test().get('/me')['firstname'],
 # Run the flow for the notebook creation
 print(f"Flow notebook {notebook()} !")
 
+#Run the flow for the job creation
+print(job())
 
 # print("Welcome ",test_credentials())
