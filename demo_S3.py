@@ -85,14 +85,15 @@ def list_buckets(client):
 
 # Task for creating an S3 bucket
 @task
-def create_bucket(bucket, client):
+def create_bucket(bucket_name, client, region):
     try:
-        location = {'LocationConstraint': "gra"}
+        print("ok")
+        location = {'LocationConstraint': region}
+        print("ok")
         response = client.create_bucket(
-            Bucket=bucket, CreateBucketConfiguration=location)
+            Bucket=bucket_name, CreateBucketConfiguration=location)
     except ClientError as error:
         if error.response['Error']['Code'] == 'BucketAlreadyOwnedByYou':
-            # We grab the message, request ID, and HTTP code to give to customer support
             print('Info : bucket already exist.')
         else:
             raise ValueError("Unable to create bucket")
@@ -154,15 +155,15 @@ def get_state_notebook(result):
 
 
 @task
-def launch_job(client, bucket_name):
+def launch_job(client, bucket_name, region_job, alias_s3, docker_image, name_job, cpu):
     job_creation_params = {
-        "image": "ovhcom/ai-training-pytorch:1.8.1",
-        "region": "GRA",
+        "image": docker_image,
+        "region": region_job,
         "volumes": [
             {
                 "dataStore": {
-                    "alias": "S3GRA",
-                    "container": "python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a",
+                    "alias": alias_s3,
+                    "container": bucket_name,
                     "prefix": ""
                 },
                 "mountPath": "/workspace/my_data",
@@ -170,10 +171,10 @@ def launch_job(client, bucket_name):
                 "cache": False
             }
         ],
-        "name": "prefect",
+        "name": name_job,
         "unsecureHttp": False,
         "resources": {
-            "cpu": 1,
+            "cpu": cpu,
             "flavor": "ai1-1-cpu"
         },
         "command": [
@@ -190,16 +191,20 @@ def launch_job(client, bucket_name):
 
 @flow
 def test():
-    ovh_client = init_ovh()
-    res = init_s3()
-    list_buckets(res)
-    bucket_name = "python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a"
-    create_bucket(bucket=bucket_name, client=res)
-    list_bucket_objects(bucket=bucket_name, client=res)
-    files = ["my-dataset.zip", "train-first-model.py", "requirements_job.txt"]
-    upload_data(files=files, bucket=bucket_name, client=res)
-    list_bucket_objects(bucket=bucket_name, client=res)
-    return ovh_client
+    # Run the first task
+    client = init_s3()
+    bucket_name = "python-eae22d77-77e6-4db0-a4d4-f80831b0fa3a"
+    # Run the second task
+    create_bucket(bucket_name=bucket_name, client=client, region="gra")
+    files = ["my-dataset.zip", "train-first-model.py", "requirements.txt"]
+    # Run the third task
+    res = upload_data(files=files, bucket=bucket_name, client=client)
+    if res == True:
+        # Run the fourth task
+        list_bucket_objects(bucket=bucket_name, client=client)
+    else:
+        raise Exception("Sorry, we can't upload your data")
+    return client
 
 # Flow to launch an AI notebook link to the bucket created before
 
@@ -228,19 +233,25 @@ def test_credentials():
 @flow
 def job():
     ovh_client = init_ovh()
+    docker_image = "ovhcom/ai-training-pytorch:1.8.1"
+    region_job = "GRA"
+    region_s3 = "S3GRA"
+    bucket_name = "python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a"
+    name_job = "prefect"
+    cpu = 1
     res = launch_job(client=ovh_client,
                      bucket_name="python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a")
     return ("Job Launched ! ")
 
 
 # Run the flow for the data container and data
-print("Welcome", test().get('/me')['firstname'],
+print("Welcome", test(),
       "Your data has been added in a S3 bucket")
 
 # Run the flow for the notebook creation
-print(f"Flow notebook {notebook()} !")
+# print(f"Flow notebook {notebook()} !")
 
 # Run the flow for the job creation
-print(job())
+# print(job())
 
 # print("Welcome ",test_credentials())
