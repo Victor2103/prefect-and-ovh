@@ -129,57 +129,28 @@ def upload_data(files, bucket, client):
             return False
     return True
 
-# Define the task to launch a job
+# Task to launch the AI Notebook
 
 
 @task
-def launch_job(client, bucket_name, region_job, alias_s3, docker_image, name_job, cpu):
-    job_creation_params = {
-        "image": docker_image,
-        "region": region_job,
-        "volumes": [
-            {
-                "dataStore": {
-                    "alias": alias_s3,
-                    "container": bucket_name,
-                    "prefix": ""
-                },
-                "mountPath": "/workspace/my_data",
-                "permission": "RW",
-                "cache": False
-            }
-        ],
-        "name": name_job,
-        "unsecureHttp": False,
-        "resources": {
-            "cpu": cpu,
-            "flavor": "ai1-1-cpu"
-        },
-        "command": [
-            "bash", "-c", "pip install -r ~/my_data/requirements.txt && python3 ~/my_data/train-first-model.py"
-        ],
-        "sshPublicKeys": []
-    }
-    result = client.post(
-        f"/cloud/project/{os.getenv('PROJECT_ID')}/ai/job", **job_creation_params)
-    return (result)
+def launch_notebook(client, bucket_name):
+    notebook_creation_params = {"env": {"editorId": "jupyterlab", "frameworkId": "pytorch", "frameworkVersion": "pytorch1.10.1-py39-cuda10.2-v22-4"}, "envVars": None, "labels": {
+        "label": "value"
+    }, "name": "prefect-2", "region": "GRA", "resources": {"cpu": 3, "flavor": "ai1-1-cpu"},
+        "sshPublicKeys": [], "unsecureHttp": False, "volumes": [{"cache": False, "dataStore": {"alias": "S3GRA", "container": "python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a", "prefix": None}, "mountPath": "/workspace/my_data", "permission": "RW"}]}
+    result = client.post(f'/cloud/project/{os.getenv("PROJECT_ID")}/ai/notebook',
+                         **notebook_creation_params)
+    return result
 
 
+# Task to get the state of the notebook with argument the response when you ask the ovh API
 @task
-def wait_state(client, id):
-    wait = True
-    while wait:
-        res = client.get(
-            f"/cloud/project/{os.getenv('PROJECT_ID')}/ai/job/{id}")
-        status = res['status']['state']
-        if (status == "DONE"):
-            name = res['spec']['name']
-            exitCode = res['status']['exitCode']
-            wait = False
-        else:
-            time.sleep(60)
-    return (name, exitCode, status)
-
+def get_state_notebook(result):
+    status = result['status']['state']
+    name = result['spec']['name']
+    id = result['id']
+    url = result['status']['url']
+    return (status, name, id, url)
 
 # Flow to create an S3 bucket and upload files in it
 @flow
@@ -199,50 +170,22 @@ def test():
         raise Exception("Sorry, we can't upload your data")
     return client
 
-# Flow to launch an AI notebook link to the bucket created before
-
-
-
-
-# Flow to test if the ovh API credentials are valid
 
 
 @flow
-def test_credentials():
+def notebook():
     ovh_client = init_ovh()
-    return ovh_client.get('/me')['firstname']
-
-# Define the flow to launch the job
-
-
-@flow
-def job():
-    ovh_client = init_ovh()
-    docker_image = "ovhcom/ai-training-pytorch:1.8.1"
-    region_job = "GRA"
-    region_s3 = "S3GRA"
-    bucket_name = "python-eae22d77-77e6-4db0-a4d4-f80831b0fa3a"
-    name_job = "prefect"
-    cpu = 1
-    res = launch_job(client=ovh_client,
-                     bucket_name=bucket_name,
-                     region_job=region_job,
-                     alias_s3=region_s3,
-                     docker_image=docker_image,
-                     name_job=name_job,
-                     cpu=cpu)
-    name, exitCode, status = wait_state(client=ovh_client, id=res["id"])
-    email(state_job=status,
-          exit_code=exitCode,
-          id_job=res["id"],
-          name_job=name)
+    res = launch_notebook(
+        client=ovh_client, bucket_name="python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a")
+    state_nb, name_nb, id_nb, url_nb = get_state_notebook(result=res)
+    state_email = email(state_notebook=state_nb, url_notebook=url_nb,
+                        id_notebook=id_nb, name_notebook=name_nb)
+    return (state_email)
 
 
 # Run the flow for the data container and data
 # print("Welcome", test(),
 #      "Your data has been added in a S3 bucket")
 
-# Run the flow for the job creation
-job()
-
-# print("Welcome ",test_credentials())
+# Run the flow for the notebook creation
+# print(f"Flow notebook {notebook()} !")
