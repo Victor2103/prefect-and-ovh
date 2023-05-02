@@ -2,6 +2,7 @@
 # Import the prefect libraries in python
 from prefect import flow, task
 from prefect_email import EmailServerCredentials, email_send_message
+import time
 
 # Import the ovh client and boto3 for s3 storage
 import ovh
@@ -22,16 +23,16 @@ load_dotenv(".env")
 # The name of my block here is email-block
 
 
-def email(state_notebook, url_notebook, id_notebook, name_notebook):
+def email(state_job, exit_code, id_job, name_job):
     email_credentials_block = EmailServerCredentials.load("email-block")
-    line_1 = f"Your notebook with the name {name_notebook} has been created ! \n"
-    line_2 = f"He is in state {state_notebook}. \n"
-    line_3 = f"The id of the notebook is {id_notebook}. \n"
-    line_4 = f"You can access it on this url : {url_notebook}."
+    line_1 = f"Your job with the name {name_job} is finished ! \n"
+    line_2 = f"He is in state {state_job}. \n"
+    line_3 = f"The id of the job is {id_job}. \n"
+    line_4 = f"He has return exit code {exit_code}."
     message = line_1+line_2+line_3+line_4
     subject = email_send_message.with_options(name="send email ").submit(
         email_server_credentials=email_credentials_block,
-        subject="Your notebook via prefect",
+        subject="Your job via prefect",
         msg=message,
         email_to="victor.vitcheff@ovhcloud.com",
     )
@@ -178,7 +179,7 @@ def launch_job(client, bucket_name, region_job, alias_s3, docker_image, name_job
             "flavor": "ai1-1-cpu"
         },
         "command": [
-            "bash", "-c", "pip install -r ~/my_data/requirements_job.txt && python3 ~/my_data/train-first-model.py"
+            "bash", "-c", "pip install -r ~/my_data/requirements.txt && python3 ~/my_data/train-first-model.py"
         ],
         "sshPublicKeys": []
     }
@@ -186,9 +187,24 @@ def launch_job(client, bucket_name, region_job, alias_s3, docker_image, name_job
         f"/cloud/project/{os.getenv('PROJECT_ID')}/ai/job", **job_creation_params)
     return (result)
 
+
+@task
+def wait_state(client, id):
+    wait = True
+    while wait:
+        res = client.get(
+            f"/cloud/project/{os.getenv('PROJECT_ID')}/ai/job/{id}")
+        status = res['status']['state']
+        if (status == "DONE"):
+            name = res['spec']['name']
+            exitCode = res['status']['exitCode']
+            wait = False
+        else:
+            time.sleep(60)
+    return (name, exitCode, status)
+
+
 # Flow to create an S3 bucket and upload files in it
-
-
 @flow
 def test():
     # Run the first task
@@ -236,22 +252,29 @@ def job():
     docker_image = "ovhcom/ai-training-pytorch:1.8.1"
     region_job = "GRA"
     region_s3 = "S3GRA"
-    bucket_name = "python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a"
+    bucket_name = "python-eae22d77-77e6-4db0-a4d4-f80831b0fa3a"
     name_job = "prefect"
     cpu = 1
     res = launch_job(client=ovh_client,
-                     bucket_name="python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a")
-    return ("Job Launched ! ")
+                     bucket_name=bucket_name,
+                     region_job=region_job,
+                     alias_s3=region_s3,
+                     docker_image=docker_image,
+                     name_job=name_job,
+                     cpu=cpu)
+    name, exitCode, status = wait_state(client=ovh_client, id=res["id"])
+    email(state_job=status,
+          exit_code=exitCode,
+          id_job=res["id"],
+          name_job=name)
 
 
 # Run the flow for the data container and data
-print("Welcome", test(),
-      "Your data has been added in a S3 bucket")
-
+# print("Welcome", test(),
+#      "Your data has been added in a S3 bucket")
 # Run the flow for the notebook creation
 # print(f"Flow notebook {notebook()} !")
-
 # Run the flow for the job creation
-# print(job())
+job()
 
 # print("Welcome ",test_credentials())
