@@ -1,6 +1,7 @@
 # Import the libraries
 # Import the prefect libraries in python
 from prefect import task
+import basePrefect
 
 # Import error if the client
 from botocore.exceptions import ClientError
@@ -8,8 +9,9 @@ from botocore.exceptions import ClientError
 
 
 # Task for listing all of your S3 buckets
-@task
-def list_buckets(client):
+@task(name="list-all-of-your-buckets",
+      task_run_name=basePrefect.generate_task_name)
+def list_buckets(client, username):
     try:
         response = client.list_buckets()
         # Output the bucket names
@@ -22,8 +24,9 @@ def list_buckets(client):
 
 
 # Task for creating an S3 bucket
-@task
-def create_bucket(bucket_name, client, region):
+@task(name="create-a-S3-bucket",
+      task_run_name=basePrefect.generate_task_name)
+def create_bucket(bucket_name, client, region, username):
     try:
         location = {'LocationConstraint': region}
         response = client.create_bucket(
@@ -34,8 +37,9 @@ def create_bucket(bucket_name, client, region):
 
 
 # Task to list all of the objects inside a bucket
-@task
-def list_bucket_objects(bucket, client):
+@task(name="list_object-in-yourS3-bucket",
+      task_run_name=basePrefect.generate_task_name)
+def list_bucket_objects(bucket, client, username):
     try:
         response = client.list_objects_v2(Bucket=bucket, MaxKeys=10)
         print(response)
@@ -46,8 +50,9 @@ def list_bucket_objects(bucket, client):
 
 
 # Task to upload some files in a S3 bucket
-@task
-def upload_data(files, bucket, client):
+@task(name="upload-files-in-a-S3-bucket",
+      task_run_name=basePrefect.generate_task_name)
+def upload_data(files, bucket, client, username):
     # Upload a file to an S3 bucket
     # param file: File to upload
     # param bucket: Bucket to upload to
