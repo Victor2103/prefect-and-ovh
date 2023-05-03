@@ -18,10 +18,10 @@ load_dotenv(".env")
 
 def email(state_notebook, url_notebook, id_notebook, name_notebook):
     email_credentials_block = EmailServerCredentials.load("email-block")
-    line_1 = f"Your job with the name {name_notebook} is finished ! \n"
-    line_2 = f"He is in state {state_notebook}. \n"
-    line_3 = f"The id of the job is {id_notebook}. \n"
-    line_4 = f"You can access it on this url {url_notebook}."
+    line_1 = f"Your job with the name {name_notebook} is finished ! <br>"
+    line_2 = f"He is in state {state_notebook}. <br>"
+    line_3 = f"The id of the job is {id_notebook}. <br>"
+    line_4 = f"You can access it by clicking <a href={url_notebook}>here</a>."
     message = line_1+line_2+line_3+line_4
     subject = email_send_message.with_options(name="send email ").submit(
         email_server_credentials=email_credentials_block,
