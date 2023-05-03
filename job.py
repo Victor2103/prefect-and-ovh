@@ -90,7 +90,7 @@ def wait_state(client, id):
 
 # Flow to create an S3 bucket and upload files in it
 @flow
-def test():
+def create_and_upload_in_S3():
     # Run the first task
     client = initClient.init_s3()
     bucket_name = "python-eae22d77-77e6-4db0-a4d4-f80831b0fa3a"
@@ -146,8 +146,8 @@ def job():
 
 
 # Run the flow for the data container and data
-# print("Welcome", test(),
-#      "Your data has been added in a S3 bucket")
+print("Welcome", create_and_upload_in_S3(),
+      "Your data has been added in a S3 bucket")
 
 # Run the flow for the job creation
 job()
