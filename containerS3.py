@@ -25,17 +25,12 @@ def list_buckets(client):
 @task
 def create_bucket(bucket_name, client, region):
     try:
-        print("ok")
         location = {'LocationConstraint': region}
-        print("ok")
         response = client.create_bucket(
             Bucket=bucket_name, CreateBucketConfiguration=location)
     except ClientError as error:
-        if error.response['Error']['Code'] == 'BucketAlreadyOwnedByYou':
-            print('Info : bucket already exist.')
-        else:
-            raise ValueError("Unable to create bucket")
-    return (response)
+        return (False)
+    return (True)
 
 
 # Task to list all of the objects inside a bucket

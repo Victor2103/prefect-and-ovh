@@ -62,17 +62,18 @@ def test():
     client = initClient.init_s3()
     bucket_name = "python-dc025c22-233c-47fa-8573-92fee45aebc6"
     # Run the second task
-    containerS3.create_bucket(bucket_name=bucket_name,
-                              client=client, region="gra")
+    res = containerS3.create_bucket(bucket_name=bucket_name,
+                                    client=client, region="gra")
+    if res == False:
+        raise Exception("Sorry, we can't create your bucket")
     files = ["my-dataset.zip", "train-first-model.py", "requirements.txt"]
     # Run the third task
     res = containerS3.upload_data(
         files=files, bucket=bucket_name, client=client)
-    if res == True:
-        # Run the fourth task
-        containerS3.list_bucket_objects(bucket=bucket_name, client=client)
-    else:
+    if res == False:
         raise Exception("Sorry, we can't upload your data")
+    # Run the fourth task
+    containerS3.list_bucket_objects(bucket=bucket_name, client=client)
     return client
 
 
