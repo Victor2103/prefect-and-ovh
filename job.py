@@ -1,10 +1,11 @@
 # Import the libraries
 # Import the prefect libraries in python
-from prefect import flow, task
+from prefect import flow, task, variables
 from prefect_email import EmailServerCredentials, email_send_message
 import time
 import initClient
 import containerS3
+import basePrefect
 
 # Import error if the client
 from botocore.exceptions import ClientError
@@ -16,17 +17,19 @@ import os
 # Load environments variables
 load_dotenv(".env")
 
-# Function to send an email to the user with the state of the notebook.
+# Function to send an email to the user to be notified when the job is done.
 # You need to create a block with your email credentials on prefect cloud.
 # The name of my block here is email-block
 
 
-def email(state_job, exit_code, id_job, name_job):
+@flow(name="send-email-with-details-of-the-job",
+      flow_run_name=basePrefect.generate_flow_name)
+def email(state_job, exit_code, id_job, name_job, username):
     email_credentials_block = EmailServerCredentials.load("email-block")
-    line_1 = f"Your job with the name {name_job} is finished ! \n"
-    line_2 = f"He is in state {state_job}. \n"
-    line_3 = f"The id of the job is {id_job}. \n"
-    line_4 = f"He has return exit code {exit_code}."
+    line_1 = f"Your job with the name {name_job} is finished ! <br>"
+    line_2 = f"He is in state {state_job}. <br>"
+    line_3 = f"The id of the job is {id_job}. <br>"
+    line_4 = f"He has return exit code {exit_code} <br>."
     message = line_1+line_2+line_3+line_4
     subject = email_send_message.with_options(name="send email ").submit(
         email_server_credentials=email_credentials_block,
@@ -39,8 +42,9 @@ def email(state_job, exit_code, id_job, name_job):
 # Define the task to launch a job
 
 
-@task
-def launch_job(client, bucket_name, region_job, alias_s3, docker_image, name_job, cpu):
+@task(name="launch-an-training-job",
+      task_run_name=basePrefect.generate_task_name)
+def launch_job(client, bucket_name, region_job, alias_s3, docker_image, name_job, cpu, username):
     job_creation_params = {
         "image": docker_image,
         "region": region_job,
@@ -72,8 +76,9 @@ def launch_job(client, bucket_name, region_job, alias_s3, docker_image, name_job
     return (result)
 
 
-@task
-def wait_state(client, id):
+@task(name="wait-for-the-state-finish-of-the-job",
+      task_run_name=basePrefect.generate_task_name)
+def wait_state(client, id, username):
     wait = True
     while wait:
         res = client.get(
@@ -85,46 +90,39 @@ def wait_state(client, id):
             wait = False
         else:
             time.sleep(60)
-    return (name, exitCode, status)
+    return (name, exitCode, status, id)
 
 
 # Flow to create an S3 bucket and upload files in it
-@flow
-def create_and_upload_in_S3():
+@flow(name="create-a-S3-container-and-upload-your-data",
+      flow_run_name=basePrefect.generate_flow_name)
+def create_and_upload_in_S3(username):
     # Run the first task
-    client = initClient.init_s3()
+    client = initClient.init_s3(username=username)
     bucket_name = "python-eae22d77-77e6-4db0-a4d4-f80831b0fa3a"
     # Run the second task
     containerS3.create_bucket(bucket_name=bucket_name,
-                              client=client, region="gra")
+                              client=client, region="gra",
+                              username=username)
     files = ["my-dataset.zip", "train-first-model.py", "requirements.txt"]
     # Run the third task
     res = containerS3.upload_data(
-        files=files, bucket=bucket_name, client=client)
+        files=files, bucket=bucket_name, client=client, username=username)
     if res == True:
         # Run the fourth task
-        containerS3.list_bucket_objects(bucket=bucket_name, client=client)
+        containerS3.list_bucket_objects(
+            bucket=bucket_name, client=client, username=username)
     else:
         raise Exception("Sorry, we can't upload your data")
     return client
 
-# Flow to launch an AI notebook link to the bucket created before
-
-
-# Flow to test if the ovh API credentials are valid
-
-
-@flow
-def test_credentials():
-    ovh_client = initClient.init_ovh()
-    return ovh_client.get('/me')['firstname']
-
 # Define the flow to launch the job
 
 
-@flow
-def job():
-    ovh_client = initClient.init_ovh()
+@flow(name="launch-your-ai-training-job-link-to-an-S3-bucket",
+      flow_run_name=basePrefect.generate_flow_name)
+def job(username):
+    ovh_client = initClient.init_ovh(username=username)
     docker_image = "ovhcom/ai-training-pytorch:1.8.1"
     region_job = "GRA"
     region_s3 = "S3GRA"
@@ -137,19 +135,24 @@ def job():
                      alias_s3=region_s3,
                      docker_image=docker_image,
                      name_job=name_job,
-                     cpu=cpu)
-    name, exitCode, status = wait_state(client=ovh_client, id=res["id"])
-    email(state_job=status,
-          exit_code=exitCode,
-          id_job=res["id"],
-          name_job=name)
+                     cpu=cpu,
+                     username=username)
+    return (wait_state(client=ovh_client, id=res["id"], username=username))
 
+
+# Get the username and create a prefect variables to send to the task
+myUsername = variables.get('username', default="marvin")
 
 # Run the flow for the data container and data
-print("Welcome", create_and_upload_in_S3(),
+print("Welcome", create_and_upload_in_S3(username=myUsername),
       "Your data has been added in a S3 bucket")
 
 # Run the flow for the job creation
-job()
+name, exitCode, status, id = job(username=myUsername)
 
-# print("Welcome ",test_credentials())
+# Send an email when it is over
+email(state_job=status,
+      exit_code=exitCode,
+      id_job=id,
+      name_job=name,
+      username=myUsername)
