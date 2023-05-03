@@ -1,22 +1,16 @@
 # Import the libraries
 # Import the prefect libraries in python
-from prefect import flow, task
-from prefect_email import EmailServerCredentials, email_send_message
-import time
+from prefect import task
 
 # Import the ovh client and boto3 for s3 storage
 import ovh
 import boto3
-
-# Import error if the client
-from botocore.exceptions import ClientError
-# from prefect.blocks.notifications import SlackWebhook
-
 from dotenv import load_dotenv
 import os
 
 # Load environments variables
 load_dotenv(".env")
+
 
 # First task to create an open stack token
 @task
@@ -31,8 +25,6 @@ def init_ovh():
     return ovh_client
 
 # Task to create a botoS3 client
-
-
 @task
 def init_s3():
     # Log in OVHcloud Object Storage with S3 protocol
