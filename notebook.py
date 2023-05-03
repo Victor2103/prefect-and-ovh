@@ -86,9 +86,9 @@ def notebook():
     res = launch_notebook(
         client=ovh_client, bucket_name="python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a")
     state_nb, name_nb, id_nb, url_nb = get_state_notebook(result=res)
-    # state_email = email(state_notebook=state_nb, url_notebook=url_nb,
-    # id_notebook=id_nb, name_notebook=name_nb)
-    return ("Finished !")
+    state_email = email(state_notebook=state_nb, url_notebook=url_nb,
+    id_notebook=id_nb, name_notebook=name_nb)
+    return (state_email)
 
 
 # Run the flow for the data container and data
