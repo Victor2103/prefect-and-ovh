@@ -3,6 +3,7 @@
 from prefect import flow, task
 from prefect_email import EmailServerCredentials, email_send_message
 import initClient
+import containerS3
 
 # Import error if the client
 from botocore.exceptions import ClientError
@@ -19,16 +20,16 @@ load_dotenv(".env")
 # The name of my block here is email-block
 
 
-def email(state_job, exit_code, id_job, name_job):
+def email(state_notebook, url_notebook, id_notebook, name_notebook):
     email_credentials_block = EmailServerCredentials.load("email-block")
-    line_1 = f"Your job with the name {name_job} is finished ! \n"
-    line_2 = f"He is in state {state_job}. \n"
-    line_3 = f"The id of the job is {id_job}. \n"
-    line_4 = f"He has return exit code {exit_code}."
+    line_1 = f"Your job with the name {name_notebook} is finished ! \n"
+    line_2 = f"He is in state {state_notebook}. \n"
+    line_3 = f"The id of the job is {id_notebook}. \n"
+    line_4 = f"You can access it on this url {url_notebook}."
     message = line_1+line_2+line_3+line_4
     subject = email_send_message.with_options(name="send email ").submit(
         email_server_credentials=email_credentials_block,
-        subject="Your job via prefect",
+        subject="Your notebook via prefect",
         msg=message,
         email_to="victor.vitcheff@ovhcloud.com",
     )
@@ -57,23 +58,26 @@ def get_state_notebook(result):
     return (status, name, id, url)
 
 # Flow to create an S3 bucket and upload files in it
+
+
 @flow
 def test():
     # Run the first task
     client = initClient.init_s3()
     bucket_name = "python-eae22d77-77e6-4db0-a4d4-f80831b0fa3a"
     # Run the second task
-    create_bucket(bucket_name=bucket_name, client=client, region="gra")
+    containerS3.create_bucket(bucket_name=bucket_name,
+                              client=client, region="gra")
     files = ["my-dataset.zip", "train-first-model.py", "requirements.txt"]
     # Run the third task
-    res = upload_data(files=files, bucket=bucket_name, client=client)
+    res = containerS3.upload_data(
+        files=files, bucket=bucket_name, client=client)
     if res == True:
         # Run the fourth task
-        list_bucket_objects(bucket=bucket_name, client=client)
+        containerS3.list_bucket_objects(bucket=bucket_name, client=client)
     else:
         raise Exception("Sorry, we can't upload your data")
     return client
-
 
 
 @flow
@@ -82,8 +86,8 @@ def notebook():
     res = launch_notebook(
         client=ovh_client, bucket_name="python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a")
     state_nb, name_nb, id_nb, url_nb = get_state_notebook(result=res)
-    #state_email = email(state_notebook=state_nb, url_notebook=url_nb,
-                        #id_notebook=id_nb, name_notebook=name_nb)
+    # state_email = email(state_notebook=state_nb, url_notebook=url_nb,
+    # id_notebook=id_nb, name_notebook=name_nb)
     return ("Finished !")
 
 
