@@ -7,16 +7,6 @@ import initClient
 import containerS3
 import basePrefect
 
-# Import error if the client
-from botocore.exceptions import ClientError
-# from prefect.blocks.notifications import SlackWebhook
-
-from dotenv import load_dotenv
-import os
-
-# Load environments variables
-load_dotenv(".env")
-
 
 # Define the task to launch a job
 
@@ -51,7 +41,7 @@ def launch_job(client, bucket_name, region_job, alias_s3, docker_image, name_job
         "sshPublicKeys": []
     }
     result = client.post(
-        f"/cloud/project/{os.getenv('PROJECT_ID')}/ai/job", **job_creation_params)
+        f"/cloud/project/{projectUuid}/ai/job", **job_creation_params)
     return (result)
 
 
@@ -61,7 +51,7 @@ def wait_state(client, id, username):
     wait = True
     while wait:
         res = client.get(
-            f"/cloud/project/{os.getenv('PROJECT_ID')}/ai/job/{id}")
+            f"/cloud/project/{projectUuid}/ai/job/{id}")
         status = res['status']['state']
         if (status == "DONE"):
             name = res['spec']['name']
@@ -144,6 +134,10 @@ def email(state_job, exit_code, id_job, name_job, username):
 
 # Get the username and create a prefect variables to send to the task
 myUsername = variables.get('username', default="marvin")
+
+# Get the project_uiid variable via the prefect cloud UI
+projectUuid = variables.get(
+    "project_uiid", default="<your-project-uuid>")
 
 # Run the flow for the data container and data
 print("Welcome", create_and_upload_in_S3(username=myUsername),
