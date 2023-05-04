@@ -1,13 +1,18 @@
 # Import the libraries
 # Import the prefect libraries in python
 from prefect import flow, task, variables
+
+# Import the librairies for sending an email
 from prefect_email import EmailServerCredentials, email_send_message
+
+# Import the files containing some tasks (there are python modules)
 import initClient
 import containerS3
 import basePrefect
 
-
 # Task to launch the AI Notebook
+
+
 @task(name="launch-an-ai-notebook",
       task_run_name=basePrefect.generate_task_name)
 def launch_notebook(client, bucket_name, username):
@@ -57,6 +62,8 @@ def createS3(username):
                                     username=username)
     return client
 
+# Flow to create an AI notebook link to an S3 bucket
+
 
 @flow(name="create-and-launch-your-notebook",
       flow_run_name=basePrefect.generate_flow_name)
@@ -72,6 +79,8 @@ def notebook(username):
 # Function to send an email to the user with the state of the notebook.
 # You need to create a block with your email credentials on prefect cloud.
 # The name of my block here is email-block
+
+# Flow to send an email once you launch your notebook
 
 
 @flow(name="send-email-with-details-of-the-notebook",
