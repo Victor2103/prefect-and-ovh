@@ -1,8 +1,14 @@
 # Import the libraries
 # Import the prefect libraries in python
 from prefect import flow, task, variables
+
+# Import the librairies for sending an email
 from prefect_email import EmailServerCredentials, email_send_message
+
+# Import the librairies for waiting until the task is done
 import time
+
+# Import the files containing some tasks (there are python modules)
 import initClient
 import containerS3
 import basePrefect
@@ -43,6 +49,8 @@ def launch_job(client, bucket_name, region_job, alias_s3, docker_image, name_job
     result = client.post(
         f"/cloud/project/{projectUuid}/ai/job", **job_creation_params)
     return (result)
+
+# This task wait until the AI Training job is done/interrupted/failed
 
 
 @task(name="wait-for-the-state-finish-of-the-job",
