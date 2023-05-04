@@ -6,12 +6,6 @@ import initClient
 import containerS3
 import basePrefect
 
-from dotenv import load_dotenv
-import os
-
-# Load environments variables
-load_dotenv(".env")
-
 
 # Task to launch the AI Notebook
 @task(name="launch-an-ai-notebook",
@@ -21,7 +15,7 @@ def launch_notebook(client, bucket_name, username):
         "label": "value"
     }, "name": "prefect-2", "region": "GRA", "resources": {"cpu": 3, "flavor": "ai1-1-cpu"},
         "sshPublicKeys": [], "unsecureHttp": False, "volumes": [{"cache": False, "dataStore": {"alias": "S3GRA", "container": "python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a", "prefix": None}, "mountPath": "/workspace/my_data", "permission": "RW"}]}
-    result = client.post(f'/cloud/project/{os.getenv("PROJECT_ID")}/ai/notebook',
+    result = client.post(f'/cloud/project/{projectUuid}/ai/notebook',
                          **notebook_creation_params)
     return result
 
@@ -102,6 +96,10 @@ def email(state_notebook, url_notebook, id_notebook, name_notebook, username):
 
 # Get the username and create a prefect variables to send to the task
 myUsername = variables.get('username', default="marvin")
+
+# Get the project_uiid variable via the prefect cloud UI
+projectUuid = variables.get(
+    "project_uiid", default="<your-project-uuid>")
 
 # Run the flow for the data container and data
 print("Welcome", createS3(username=myUsername),
