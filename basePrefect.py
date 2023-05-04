@@ -1,5 +1,10 @@
+# Import the library to get the exact time
 import datetime
+
+# Import the libraries to get the name of the flow_run and the task_run
 from prefect.runtime import flow_run, task_run
+
+# Function to generate automatically the task name
 
 
 def generate_task_name():
@@ -10,6 +15,8 @@ def generate_task_name():
     date = datetime.datetime.utcnow()
 
     return f"{task_name}-by-{name}-on-{date}"
+
+# Function to generate automatically the flow name
 
 
 def generate_flow_name():
