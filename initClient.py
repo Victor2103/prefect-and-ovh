@@ -1,17 +1,13 @@
 # Import the libraries
 # Import the prefect libraries in python
-from prefect import task
+from prefect import task, variables
 
 # Import the ovh client and boto3 for s3 storage
 import ovh
 import boto3
-from dotenv import load_dotenv
-import os
+
 
 import basePrefect
-
-# Load environments variables
-load_dotenv(".env")
 
 
 # First task to create an open stack token
@@ -20,10 +16,10 @@ load_dotenv(".env")
 def init_ovh(username):
     # Visit https://api.ovh.com/createToken/?GET=/me to get your credentials
     ovh_client = ovh.Client(
-        endpoint=os.getenv("APP_ENDPOINT"),
-        application_key=os.getenv("APP_KEY"),
-        application_secret=os.getenv("APP_SECRET"),
-        consumer_key=os.getenv("CONSUMER_KEY"),
+        endpoint=appEndpoint,
+        application_key=applicationKey,
+        application_secret=applicationSecret,
+        consumer_key=consumerKey,
     )
     return ovh_client
 
@@ -39,9 +35,21 @@ def init_s3(username):
     # For the credentials of boto3 use the S3 credentials created on the OVHcloud control pannel
     client = boto3.client(
         's3',
-        aws_access_key_id=os.getenv("S3_ACCESS_KEY"),
-        aws_secret_access_key=os.getenv("S3_SECRET_KEY"),
-        endpoint_url=os.getenv("S3_ENDPOINT"),
-        region_name=os.getenv("S3_REGION")
+        aws_access_key_id=awsAccessKey,
+        aws_secret_access_key=awsSecretKey,
+        endpoint_url=endpointUrl,
+        region_name=regionName
     )
     return client
+
+
+# Get the variables from your environment in prefect cloud  :
+appEndpoint = variables.get("app_endpoint", default="<your-app-endpoint>")
+applicationKey = variables.get("app_key", default="<your-app-key>")
+applicationSecret = variables.get(
+    "app_secret", default="<your-application-secret")
+consumerKey = variables.get("consumer_key", default="<your-consumer-key>")
+awsAccessKey = variables.get("s3_key", default="<your-S3-access-key>")
+awsSecretKey = variables.get("s3_secret", default="<your-S3-secret-key>")
+endpointUrl = variables.get("s3_endpoint", "<your-S3-endpoint>")
+regionName = variables.get("s3_region", default="<your-S3-region>")
