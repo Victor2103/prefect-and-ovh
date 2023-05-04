@@ -42,27 +42,25 @@ def get_state_notebook(result, username):
 @flow(name="create-and-upload-data-in-S3",
       flow_run_name=basePrefect.generate_flow_name)
 def createS3(username):
-    # Get the username and create a prefect variables to send to the task
-    myUsername = variables.get('username', default="marvin")
     # Run the first task
-    client = initClient.init_s3(myUsername)
+    client = initClient.init_s3(username=username)
     bucket_name = "python-dc025c22-233c-47fa-8573-92fee45aebc6"
     # Run the second task
     res = containerS3.create_bucket(bucket_name=bucket_name,
                                     client=client, region="gra",
-                                    username=myUsername)
+                                    username=username)
     if res == False:
         raise Exception("Sorry, we can't create your bucket")
     files = ["my-dataset.zip", "train-first-model.py", "requirements.txt"]
     # Run the third task
     res = containerS3.upload_data(
         files=files, bucket=bucket_name, client=client,
-        username=myUsername)
+        username=username)
     if res == False:
         raise Exception("Sorry, we can't upload your data")
     # Run the fourth task
     containerS3.list_bucket_objects(bucket=bucket_name, client=client,
-                                    username=myUsername)
+                                    username=username)
     return client
 
 
@@ -71,11 +69,11 @@ def createS3(username):
 def notebook(username):
     # Get the username and create a prefect variables to send to the task
     myUsername = variables.get('username', default="marvin")
-    ovh_client = initClient.init_ovh(username=myUsername)
+    ovh_client = initClient.init_ovh(username=username)
     res = launch_notebook(
         client=ovh_client, bucket_name="python-5742b54b-f5c1-4bbf-bca9-0ef4921f282a",
-        username=myUsername)
-    return (get_state_notebook(result=res, username=myUsername))
+        username=username)
+    return (get_state_notebook(result=res, username=username))
 
 # Function to send an email to the user with the state of the notebook.
 # You need to create a block with your email credentials on prefect cloud.
@@ -93,7 +91,7 @@ def email(state_notebook, url_notebook, id_notebook, name_notebook, username):
     message = line_1+line_2+line_3+line_4
     # This is a task
     subject = email_send_message.with_options(name="send-an-email",
-                                              task_run_name=f"send-an-email-by-{myUsername}").submit(
+                                              task_run_name=f"send-an-email-by-{username}-for-the-notebook-url").submit(
         email_server_credentials=email_credentials_block,
         subject="Your notebook via prefect",
         msg=message,
