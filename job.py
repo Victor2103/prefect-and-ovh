@@ -17,27 +17,6 @@ import os
 # Load environments variables
 load_dotenv(".env")
 
-# Function to send an email to the user to be notified when the job is done.
-# You need to create a block with your email credentials on prefect cloud.
-# The name of my block here is email-block
-
-
-@flow(name="send-email-with-details-of-the-job",
-      flow_run_name=basePrefect.generate_flow_name)
-def email(state_job, exit_code, id_job, name_job, username):
-    email_credentials_block = EmailServerCredentials.load("email-block")
-    line_1 = f"Your job with the name {name_job} is finished ! <br>"
-    line_2 = f"He is in state {state_job}. <br>"
-    line_3 = f"The id of the job is {id_job}. <br>"
-    line_4 = f"He has return exit code {exit_code} <br>."
-    message = line_1+line_2+line_3+line_4
-    subject = email_send_message.with_options(name="send email ").submit(
-        email_server_credentials=email_credentials_block,
-        subject="Your job via prefect",
-        msg=message,
-        email_to="victor.vitcheff@ovhcloud.com",
-    )
-    return (subject)
 
 # Define the task to launch a job
 
@@ -138,6 +117,29 @@ def job(username):
                      cpu=cpu,
                      username=username)
     return (wait_state(client=ovh_client, id=res["id"], username=username))
+
+# Function to send an email to the user to be notified when the job is done.
+# You need to create a block with your email credentials on prefect cloud.
+# The name of my block here is email-block
+
+
+@flow(name="send-email-with-details-of-the-job",
+      flow_run_name=basePrefect.generate_flow_name)
+def email(state_job, exit_code, id_job, name_job, username):
+    email_credentials_block = EmailServerCredentials.load("email-block")
+    line_1 = f"Your job with the name {name_job} is finished ! <br>"
+    line_2 = f"He is in state {state_job}. <br>"
+    line_3 = f"The id of the job is {id_job}. <br>"
+    line_4 = f"He has return exit code {exit_code} <br>."
+    message = line_1+line_2+line_3+line_4
+    subject = email_send_message.with_options(name="send-an-email",
+                                              task_run_name=f"send-an-email-by-{username}-to-notified-job_is_finished").submit(
+        email_server_credentials=email_credentials_block,
+        subject="Your job via prefect",
+        msg=message,
+        email_to="victor.vitcheff@ovhcloud.com",
+    )
+    return (subject)
 
 
 # Get the username and create a prefect variables to send to the task
