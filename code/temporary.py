@@ -1,13 +1,8 @@
 # Import the necessary libraries
-import ovh
 from prefect import flow, task, variables
 import json
 import basePrefect
 import initClient
-
-import os
-from dotenv import load_dotenv
-load_dotenv(".env")
 
 
 @flow
