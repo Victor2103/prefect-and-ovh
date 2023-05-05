@@ -30,7 +30,7 @@ Prefect works with local agent on your execution environment (your own computer,
 
 It can be seen as follow:
 
-[!image](images/agent_server.png){.thumbnail} 
+![agent_server](images/agent_server.png){.thumbnail} 
 
 You can find more information on this [Prefect security overview](https://www.prefect.io/security/overview/). 
 
@@ -181,11 +181,11 @@ In this python code, we create two tasks:
 
 We put this two tasks in a flow and run the flow at the end. We will see in our terminal the project informations. And you can see something like this : 
 
-![image](images/flow_terminal.png){.thumbnail}
+![flow_terminal](images/flow_terminal.png){.thumbnail}
 
 We can see one flow has been finished and he is in state `Completed()`. This flow has also completed two tasks that we defined before. Prefect Cloud provides an interface more precise online. Let's go and see what she provides to us. 
 
-![image](images/flow_interface.png){.thumbnail} 
+![flow_interface](images/flow_interface.png){.thumbnail} 
 
 The graph shows us the execution time of the "display-swift-containers" flow based on the time it was executed. If you run again your flow, you will see another green point. If the flow had not been completed, the point on the graph would be of a different color. We can see below the detail of the running flow. Note that you can name each of your flow if you want. 
 

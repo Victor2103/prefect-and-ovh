@@ -26,7 +26,7 @@ In Prefect, "blocks" are pre-built, reusable building blocks that encapsulate co
 
 To access the lists of blocks, go on your prefect cloud account. In the sidebar, you can see the tab Blocks. Click on it and you will be able to see a list of software. It can be Docker, Github,json... Here, we will use the Email Block. It should be something similar as this : 
 
-[!image](images/email_block.png){.thumbnail}
+![email_block](images/email_block.png){.thumbnail}
 
 Click on add and fill the block with a name and the address mail where you will receive a notification. You can enter multiple address mails. Your block has been created, now let's see what is an automation and why it will be useful to send our email. 
 
@@ -38,7 +38,7 @@ In our case, we will use automation to send a notification. Thanks to the block 
 
 The first step to complete is the trigger. For this example, we will send an email when the flow of the getting started is completed. You can fill the page like this :
 
-[!image](images/trigger.png){.thumbnail}
+![trigger](images/trigger.png){.thumbnail}
 
 > [!primary]
 >
@@ -47,7 +47,7 @@ The first step to complete is the trigger. For this example, we will send an ema
 
 After you will have to describe the action to do when your flow (created in the getting started) will finish. Here, we want to send a notification, more precisely an email. To do it, really simple ! We choose send a notification as an action type, then we choose the email block we create before and we define the subject of the email and the body. The creation of the automation is responsive. The suggestions will vary depending on the action chosen. Your actions page should look something like this : 
 
-[!image](images/actions.png){.thumbnail}
+![actions](images/actions.png){.thumbnail}
 
 Last page, you have to fill the details of your automations like the name and the description. Choose a name and a description as you want. Ok now let's run your flow ! Wait until your flow is completed and... Check your mailbox, we will receive a mail from prefect ! 
 

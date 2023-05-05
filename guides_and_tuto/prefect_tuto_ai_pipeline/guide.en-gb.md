@@ -15,7 +15,7 @@ The purpose of this tutorial is to create a pipeline from the ingestion of data 
 
 To sucess this objective, we will first of all some data on a S3 object storage container. The data will be use to train the model, we will link it to our AI Training job. The model will be a **Torch** model. If you want to have some details about this model, fill free to look at this [tutorial](https://docs.ovh.com/gb/en/publiccloud/ai/training/tuto-train-first-ml-model/). All of this will be ensure with the Prefect tool configured in your python environment. The creation of the S3 object storage and the data upload will be done in a first Prefect flow. The second flow will be the launch of the job on AI Training. The last flow will be the email to send to the user. Here is the schema to understand what we will ensure in this tutorial :
 
-[!image](images/flows_email_job.png){.thumbnail}
+![schema_flow](images/flows_email_job.png){.thumbnail}
 
 ## Requirements
 
@@ -231,7 +231,7 @@ The second task will use the SDK ovh for python. This library provides a post me
 
 To launch a job, we must define some parameters. We can't launch a job with no name and no image. With the sdk ovh, parameters are really easy to provide. The function **client.post("url",\*\*job_params)** has two parameters. The first one is the url of the post request. The second one is a json object with all of the parameters of your job. If you not sure about how the body of the request is, you can open a console and launch your job with the OVHcloud control pannel. In this case, you will be able to see all of the json file. Here is a picture to show you how to get the raw data to send when you launch a job. 
 
-[!image](images/button_job.png){.thumbnail}
+![button_job](images/button_job.png){.thumbnail}
 
 To resume, just before clicking on create, open a console, click and retrieve the request you send. This will give you a model of the **job_params** you must provide. 
 Now, we have our object storage with the data upload, we have the parameters of the job to send to the OVHcloud client in python, let's create the task who will launch the job. Here is the python code :
@@ -346,11 +346,11 @@ email(state_job=status,
 
 Open a terminal, launch the command `python3 <name-of-your-file.py` and wait until it's done. We should have receive an email like this : 
 
-[!image](email_example.png){.thumbnail}
+![email_example](images/email_example.png){.thumbnail}
 
 Now, let's see on the prefect cloud UI all the tools provided to see your flows ! For example, the "Flow Runs" tab in the Prefect Cloud UI displays information about the executions of your Prefect flows. Ypu can found the name of the flows, the state of the flow, the tasks run inside the flow and much more information about your running or runned flows. Overall, the Flow Runs tab provides a detailed overview of the execution history of your Prefect flows, allowing you to monitor performance, troubleshoot issues, and make improvements to your workflows. Here is an example : 
 
-[!image](flow_run_example.png){.thumbnail}
+![interface_flows](images/flow_run_example.png){.thumbnail}
 
 I choose to display the launch of the notebook, the second flow of this pipeline. We can see our three task display on the graph. We also see the order to execute them. Below the graph, you can found some tab to see the details of your tasks or the results of each task.
 
