@@ -1,13 +1,8 @@
 # Import the necessary libraries
-import ovh
 from prefect import flow, task, variables
 import json
 import basePrefect
 import initClient
-
-import os
-from dotenv import load_dotenv
-load_dotenv(".env")
 
 
 @flow
@@ -16,7 +11,7 @@ def test_credentials():
     return ovh_client.get('/me')['firstname']
 
 
-# Define the task to get all of your notebook
+# Define the task to get the informations of your project
 
 
 @task(name="get_infos",
@@ -30,17 +25,17 @@ def get_project_infos(client, projectUuid, username: str):
 
 
 # Define the flow to run on prefect
-@flow(name="test-prefect-with-OVHcloud", flow_run_name=basePrefect.generate_flow_name)
-def testPrefectWithOVHcloud(username: str):
+@flow(name="display_project_infos", flow_run_name=basePrefect.generate_flow_name)
+def display_project_infos(username: str):
 
     projectUuid = variables.get(
         "project_uiid", default="<your-project-uuid>")
 
     # Create the OVHcloud client
-    client = initClient.init_ovh(username="victor")
+    client = initClient.init_ovh(username=username)
     # This task print all your Public Cloud project infos
     get_project_infos(
-        client=client, projectUuid=projectUuid, username="victor")
+        client=client, projectUuid=projectUuid, username=username)
 
 
-testPrefectWithOVHcloud(username="victor")
+display_project_infos(username="victor")
