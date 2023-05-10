@@ -61,12 +61,12 @@ def wait_state(client, id, username):
         res = client.get(
             f"/cloud/project/{projectUuid}/ai/job/{id}")
         status = res['status']['state']
-        if (status == "DONE"):
+        if (status == "RUNNING" or status == "QUEUED" or status == "INITIALIZING" or status == "PENDING"):
+            time.sleep(60)
+        else:
             name = res['spec']['name']
             exitCode = res['status']['exitCode']
             wait = False
-        else:
-            time.sleep(60)
     return (name, exitCode, status, id)
 
 
